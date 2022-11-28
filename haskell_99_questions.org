@@ -46,8 +46,10 @@ elementAt "haskell" 5
 #+RESULTS:
 :  'e'
 
+#+begin_src haskell
 take :: Int -> [a] -> [a]
      :: Int -> ([a] -> [a])
 last :: [a] -> a
 (last .) :: (b -> [a]) -> b -> a
          :: ([a] -> [a]) -> [a] -> a
+#+end_src
