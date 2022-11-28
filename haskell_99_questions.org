@@ -1,0 +1,53 @@
+#+title: Haskell 99 Questions
+#+author: Junjie Wu
+#+date: <2022-11-28 Mon>
+
+#+name: org-babel-haskell-formatter
+#+begin_src emacs-lisp :var strr="" :exports code
+(format "%s"
+        (replace-regexp-in-string
+         (rx "ghci>")
+         "" (format "%s" strr)))
+#+end_src
+
+#+RESULTS: org-babel-haskell-formatter
+
+* 1 to 10
+** Problem 1
+Find the last element of a list.
+#+begin_src haskell :export both :post org-babel-haskell-formatter(*this*)
+myLast :: [a] -> a
+myLast = foldr1 (const id)
+myLast [1, 2, 3]
+#+end_src
+
+#+RESULTS:
+:  3
+
+** Problem 2
+Find the last but one element of a list.
+#+begin_src haskell :export both :post org-babel-haskell-formatter(*this*)
+myButLast :: [a] -> a
+myButLast = fst . foldl (\(a, b) c -> (b, c)) (error "empty", error "too few")
+myButLast [1, 2, 3, 4]
+#+end_src
+
+#+RESULTS:
+:  3
+
+** Problem 3
+Find the K'th element of a list. The first element in the list is number 1.
+#+begin_src haskell :export both :post org-babel-haskell-formatter(*this*)
+elementAt :: [a] -> Int -> a
+elementAt = flip $ (last .) . take
+elementAt "haskell" 5
+#+end_src
+
+#+RESULTS:
+:  'e'
+
+take :: Int -> [a] -> [a]
+     :: Int -> ([a] -> [a])
+last :: [a] -> a
+(last .) :: (b -> [a]) -> b -> a
+         :: ([a] -> [a]) -> [a] -> a
