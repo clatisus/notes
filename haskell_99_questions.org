@@ -6,7 +6,7 @@
 #+begin_src emacs-lisp :var strr="" :exports code
 (format "%s"
         (replace-regexp-in-string
-         (rx "ghci>")
+         (rx (or "ghci>" "ghci|"))
          "" (format "%s" strr)))
 #+end_src
 
@@ -15,36 +15,42 @@
 * 1 to 10
 ** Problem 1
 Find the last element of a list.
-#+begin_src haskell :export both :post org-babel-haskell-formatter(*this*)
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
 myLast :: [a] -> a
 myLast = foldr1 (const id)
+:}
 myLast [1, 2, 3]
 #+end_src
 
 #+RESULTS:
-:  3
+: 3
 
 ** Problem 2
 Find the last but one element of a list.
-#+begin_src haskell :export both :post org-babel-haskell-formatter(*this*)
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
 myButLast :: [a] -> a
 myButLast = fst . foldl (\(a, b) c -> (b, c)) (error "empty", error "too few")
+:}
 myButLast [1, 2, 3, 4]
 #+end_src
 
 #+RESULTS:
-:  3
+: 3
 
 ** Problem 3
 Find the K'th element of a list. The first element in the list is number 1.
-#+begin_src haskell :export both :post org-babel-haskell-formatter(*this*)
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
 elementAt :: [a] -> Int -> a
 elementAt = flip $ (last .) . take
+:}
 elementAt "haskell" 5
 #+end_src
 
 #+RESULTS:
-:  'e'
+: e
 
 #+begin_src haskell
 take :: Int -> [a] -> [a]
@@ -52,4 +58,117 @@ take :: Int -> [a] -> [a]
 last :: [a] -> a
 (last .) :: (b -> [a]) -> b -> a
          :: ([a] -> [a]) -> [a] -> a
+#+end_src
+
+** Problem 4
+Find the number of elements of a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+myLength :: [a] -> Int
+myLength = fst . last . zip [1..]
+:}
+myLength "Hello, world!"
+#+end_src
+
+#+RESULTS:
+: 13
+
+** Problem 5
+Reverse a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+myReverse :: [a] -> [a]
+myReverse = foldl (flip (:)) []
+:}
+myReverse "A man, a plan, a canal, panama!"
+#+end_src
+
+#+RESULTS:
+: !amanap ,lanac a ,nalp a ,nam A
+
+** Problem 6
+Find out whether a list is a palindrome. A palindrome can be read forward or backward; e.g. (x a m a x).
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+isPalindrome :: Eq a => [a] -> Bool
+isPalindrome = reverse >>= (==)
+:}
+isPalindrome [1, 2, 4, 2, 1]
+#+end_src
+
+#+RESULTS:
+: True
+
+** Problem 7
+Flatten a nested list structure.
+
+Transform a list, possibly holding lists as elements into a `flat' list by replacing each list with its elements (recursively).
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+data NestedList a = Elem a | List [NestedList a]
+flatten :: NestedList a -> [a]
+flatten (Elem x) = [x]
+flatten (List xs) = xs >>= flatten
+:}
+flatten (List [Elem 1, List [Elem 2, List [Elem 3, Elem 4], Elem 5]])
+#+end_src
+
+#+RESULTS:
+: (1 2 3 4 5)
+
+** Problem 8
+Eliminate consecutive duplicates of list elements.
+
+If a list contains repeated elements they should be replaced with a single copy of the element. The order of the elements should not be changed.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+compress :: Eq a => [a] -> [a]
+compress xs = foldr f (const []) xs Nothing
+  where
+    f x r a@(Just q) | x == q = r a
+    f x r _ = x : r (Just x)
+:}
+compress "aaaabccaadeeee"
+#+end_src
+
+#+RESULTS:
+: abcade
+
+#+begin_src haskell
+-- (Just x) stores the last element processed
+-- taking [1, 2, 2] as example
+1 `f` (2 `f` (2 `f` (const [])))
+1 `f` |__________ r ___________| Nothing = 1 : r (Just 1)
+
+2 `f` (2 `f` (const []))
+2 `f` |______ r _______| (Just 1) = 2 : r (Just 2)
+
+2 `f` (const [])
+2 `f` |__ r ___| (Just 2) = r (Just 2)
+#+end_src
+
+** Problem 9
+Pack consecutive duplicates of list elements into sublists. If a list contains repeated elements they should be placed in separate sublists.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.List (singleton)
+import Data.Maybe (fromJust)
+:{
+pack :: Eq a => [a] -> [[a]]
+pack xs = foldr f (singleton . fromJust) xs Nothing
+  where
+    f x r (Just q) | x == head q = r (Just (x : q))
+    f x r (Just q) = q : r (Just [x])
+    f x r Nothing = r (Just [x])
+:}
+pack ['a', 'a', 'a', 'a', 'b', 'c', 'c', 'a', 'a', 'd', 'e', 'e', 'e', 'e']
+#+end_src
+
+#+RESULTS:
+:          ["aaaa","b","cc","aa","d","eeee"]
+
+** Problem 10
+Run-length encoding of a list. Use the result of problem P09 to implement the so-called run-length encoding data compression method. Consecutive duplicates of elements are encoded as lists (N E) where N is the number of duplicates of the element E.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+:}
 #+end_src
