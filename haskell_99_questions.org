@@ -6,7 +6,7 @@
 #+begin_src emacs-lisp :var strr="" :exports code
 (format "%s"
         (replace-regexp-in-string
-         (rx (or "ghci>" "ghci|"))
+         (rx (: "ghci" (| ">" "|") (* " ")))
          "" (format "%s" strr)))
 #+end_src
 
@@ -150,11 +150,10 @@ compress "aaaabccaadeeee"
 ** Problem 9
 Pack consecutive duplicates of list elements into sublists. If a list contains repeated elements they should be placed in separate sublists.
 #+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
-import Data.List (singleton)
 import Data.Maybe (fromJust)
 :{
 pack :: Eq a => [a] -> [[a]]
-pack xs = foldr f (singleton . fromJust) xs Nothing
+pack xs = foldr f ((: []) . fromJust) xs Nothing
   where
     f x r (Just q) | x == head q = r (Just (x : q))
     f x r (Just q) = q : r (Just [x])
@@ -164,11 +163,18 @@ pack ['a', 'a', 'a', 'a', 'b', 'c', 'c', 'a', 'a', 'd', 'e', 'e', 'e', 'e']
 #+end_src
 
 #+RESULTS:
-:          ["aaaa","b","cc","aa","d","eeee"]
+: ["aaaa","b","cc","aa","d","eeee"]
 
 ** Problem 10
 Run-length encoding of a list. Use the result of problem P09 to implement the so-called run-length encoding data compression method. Consecutive duplicates of elements are encoded as lists (N E) where N is the number of duplicates of the element E.
 #+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.List (group)
 :{
+encode :: Eq a => [a] -> [(Int, a)]
+encode = map ((,) <$> length <*> head) . group
 :}
+encode "aaaabccaadeeee"
 #+end_src
+
+#+RESULTS:
+: [(4,'a'),(1,'b'),(2,'c'),(2,'a'),(1,'d'),(4,'e')]
