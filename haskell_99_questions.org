@@ -12,7 +12,7 @@
 
 #+RESULTS: org-babel-haskell-formatter
 
-* 1 to 10
+* 1 to 10: Lists
 ** Problem 1
 Find the last element of a list.
 #+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
@@ -40,7 +40,7 @@ myButLast [1, 2, 3, 4]
 : 3
 
 ** Problem 3
-Find the K'th element of a list. The first element in the list is number 1.
+Find the K-th element of a list. The first element in the list is number 1.
 #+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
 :{
 elementAt :: [a] -> Int -> a
@@ -148,7 +148,7 @@ compress "aaaabccaadeeee"
 #+end_src
 
 ** Problem 9
-Pack consecutive duplicates of list elements into sublists. If a list contains repeated elements they should be placed in separate sublists.
+Pack consecutive duplicates of list elements into sub-lists. If a list contains repeated elements they should be placed in separate sub-lists.
 #+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
 import Data.Maybe (fromJust)
 :{
@@ -178,3 +178,182 @@ encode "aaaabccaadeeee"
 
 #+RESULTS:
 : [(4,'a'),(1,'b'),(2,'c'),(2,'a'),(1,'d'),(4,'e')]
+
+* 11 to 20: Lists, continued
+** Problem 11
+Modified run-length encoding.
+
+Modify the result of problem 10 in such a way that if an element has no duplicates it is simply copied into the result list. Only elements with duplicates are transferred as (N E) lists.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.List (group)
+:{
+data ListItem a = Single a | Multiple Int a
+  deriving (Show)
+encode :: Eq a => [a] -> [(Int, a)]
+encode = map ((,) <$> length <*> head) . group
+
+encodeModified :: Eq a => [a] -> [ListItem a]
+encodeModified = map encoder . encode
+  where
+    encoder (1, n) = Single n
+    encoder (x, n) = Multiple x n
+:}
+encodeModified "aaaabccaadeeee"
+#+end_src
+
+#+RESULTS:
+: [Multiple 4 'a',Single 'b',Multiple 2 'c',Multiple 2 'a',Single 'd',Multiple 4 'e']
+
+** Problem 12
+Decode a run-length encoded list.
+
+Given a run-length code list generated as specified in problem 11. Construct its uncompressed version.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.List (group)
+:{
+decodeModified :: Eq a => [ListItem a] -> [a]
+decodeModified = concatMap decoder
+  where
+    decoder (Single x) = [x]
+    decoder (Multiple c x) = replicate c x
+:}
+decodeModified [Multiple 4 'a',Single 'b',Multiple 2 'c',Multiple 2 'a',Single 'd',Multiple 4 'e']
+#+end_src
+
+#+RESULTS:
+: "aaaabccaadeeee"
+
+** Problem 13
+Run-length encoding of a list (direct solution).
+
+Implement the so-called run-length encoding data compression method directly. I.e. don't explicitly create the sub-lists containing the duplicates, as in problem 9, but only count them. As in problem P11, simplify the result list by replacing the singleton lists (1 X) by X.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.List (group)
+:{
+encodeDirect :: Eq a => [a] -> [ListItem a]
+encodeDirect [] = []
+encodeDirect (x : xs) =
+  let (group, rest) = span (== x) xs
+   in encoder (Multiple (1 + length group) x) : encodeDirect rest
+  where
+    encoder (Multiple 1 x) = Single x
+    encoder x = x
+:}
+encodeDirect "aaaabccaadeeee"
+#+end_src
+
+#+RESULTS:
+: [Multiple 4 'a',Single 'b',Multiple 2 'c',Multiple 2 'a',Single 'd',Multiple 4 'e']
+
+** Problem 14
+Duplicate the elements of a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Control.Applicative ( (<**>) )
+:{
+dupli :: [a] -> [a]
+dupli = (<**> [id, id])
+:}
+dupli [1, 2, 3]
+#+end_src
+
+#+RESULTS:
+: [1,1,2,2,3,3]
+
+Another brilliant way is
+#+begin_src haskell
+-- dupli = foldr (\x xs -> x : x : xs) []
+-- dupli = foldr (\x -> (x :) . (x :)) []
+dupli = foldr ((.) <$> (:) <*> (:)) []
+#+end_src
+
+** Problem 15
+Replicate the elements of a list a given number of times.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Control.Applicative ( (<**>) )
+:{
+repli :: [a] -> Int -> [a]
+-- repli = flip (flip ( <**> ) . (`replicate` id))
+-- repli (x : xs) n = foldr (const (x :)) (repli xs n) [1 .. n]
+repli xs n = xs >>= replicate n
+:}
+repli "abc" 3
+#+end_src
+
+#+RESULTS:
+: "aaabbbccc"
+
+** Problem 16
+Drop every N-th element from a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+dropEvery :: [a] -> Int -> [a]
+dropEvery = flip $ \n -> map snd . filter ((/= n) . fst) . zip (cycle [1 .. n])
+:}
+dropEvery "abcdefghiklmn" 3
+#+end_src
+
+#+RESULTS:
+: abdeghkln
+
+** Problem 17
+Split a list into two parts; the length of the first part is given.
+
+Do not use any predefined predicates.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Control.Arrow
+:{
+split :: [a] -> Int -> ([a], [a])
+split (x : xs) n | n > 0 = (x :) . fst &&& snd $ split xs (n - 1)
+split xs _ = ([], xs)
+:}
+split "abcdefghik" 3
+#+end_src
+
+#+RESULTS:
+: ("abc","defghik")
+
+** Problem 18
+Extract a slice from a list.
+
+Given two indices, i and k, the slice is the list containing the elements between the i-th and k-th element of the original list (both limits included). Start counting the elements with 1.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+slice :: [a] -> Int -> Int -> [a]
+slice xs l r = drop (l - 1) $ take r xs
+:}
+slice ['a','b','c','d','e','f','g','h','i','k'] 3 7
+#+end_src
+
+#+RESULTS:
+: cdefg
+
+** Problem 19
+Rotate a list N places to the left.
+
+Hint: Use the predefined functions length and (++).
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+rotate :: [a] -> Int -> [a]
+rotate x c = uncurry (flip (++)) $ splitAt (mod c (length x)) x
+:}
+-- rotate ['a','b','c','d','e','f','g','h'] 3
+rotate ['a','b','c','d','e','f','g','h'] (-2)
+#+end_src
+
+#+RESULTS:
+: "ghabcdef"
+
+** Problem 20
+Remove the K-th element from a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+removeAt :: Int -> [a] -> (a, [a])
+removeAt n x = (last prefix, init prefix ++ suffix)
+  where
+    (prefix, suffix) = splitAt n x
+:}
+removeAt 2 "abcd"
+#+end_src
+
+#+RESULTS:
+: ('b',"acd")
