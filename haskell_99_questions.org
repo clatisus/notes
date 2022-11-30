@@ -107,7 +107,7 @@ Transform a list, possibly holding lists as elements into a `flat' list by repla
 :{
 data NestedList a = Elem a | List [NestedList a]
 flatten :: NestedList a -> [a]
-flatten (Elem x) = [x]
+flatten (Elem x) = return x
 flatten (List xs) = xs >>= flatten
 :}
 flatten (List [Elem 1, List [Elem 2, List [Elem 3, Elem 4], Elem 5]])
@@ -357,3 +357,166 @@ removeAt 2 "abcd"
 
 #+RESULTS:
 : ('b',"acd")
+
+* 21 to 28: Lists again
+** Problem 21
+Insert an element at a given position into a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+insertAt :: a -> [a] -> Int -> [a]
+insertAt x xs n = f ++ (x : s)
+  where
+    (f, s) = splitAt (n - 1) xs
+:}
+insertAt 'X' "abcd" 2
+#+end_src
+
+#+RESULTS:
+: "aXbcd"
+
+** Problem 22
+Create a list containing all integers within a given range.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+range :: Int -> Int -> [Int]
+range l r = scanl (+) l (replicate (r - l) 1)
+:}
+range 4 9
+#+end_src
+
+#+RESULTS:
+: (4 5 6 7 8 9)
+
+** Problem 23
+Extract a given number of randomly selected elements from a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:m +System.Random
+:{
+rndSelect :: [a] -> Int -> IO [a]
+rndSelect xs n = do
+  gen <- getStdGen
+  return $ take n [xs !! x | x <- randomRs (0, length xs - 1) gen]
+:}
+rndSelect "abcdefgh" 3 >>= putStrLn
+#+end_src
+
+#+RESULTS:
+: hhf
+
+** Problem 24
+Lotto: Draw N different random numbers from the set 1..M.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:m +System.Random
+:{
+rndSelect :: Int -> Int -> IO [Int]
+rndSelect n m = take n . randomRs (1, m) <$> getStdGen
+:}
+rndSelect 6 49
+#+end_src
+
+#+RESULTS:
+: [40,14,9,8,3,37]
+
+** Problem 25
+Generate a random permutation of the elements of a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:m +System.Random
+:{
+rndPermu :: [a] -> IO [a]
+rndPermu [] = return []
+rndPermu (x : xs) = do
+  pos <- randomRIO (0, length xs)
+  rest <- rndPermu xs
+  return $ let (p, s) = splitAt pos rest in p ++ (x : s)
+:}
+rndPermu "abcdef"
+#+end_src
+
+#+RESULTS:
+: "fedcba"
+
+** Problem 26
+Generate the combinations of K distinct objects chosen from the N elements of a list
+
+In how many ways can a committee of 3 be chosen from a group of 12 people? We all know that there are C(12,3) = 220 possibilities (C(N,K) denotes the well-known binomial coefficients). For pure mathematicians, this result may be great. But we want to really generate all the possibilities in a list.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.List (nub, sort)
+:{
+combinations :: (Ord a, Eq a) => Int -> [a] -> [[a]]
+combinations n xs = nub . map sort . filter isPermu $ foldr (const ((:) <$> xs <*>)) [[]] [1 .. n]
+  where
+    isPermu = (== n) . length . nub
+:}
+combinations 3 "abcde"
+#+end_src
+
+#+RESULTS:
+: ["abc","abd","abe","acd","ace","ade","bcd","bce","bde","cde"]
+
+** Problem 27
+Group the elements of a set into disjoint subsets.
+
+a) In how many ways can a group of 9 people work in 3 disjoint subgroups of 2, 3 and 4 persons? Write a function that generates all the possibilities and returns them in a list.
+
+b) Generalize the above predicate in a way that we can specify a list of group sizes and the predicate will return a list of groups.
+
+Note that we do not want permutations of the group members; i.e. ((ALDO BEAT) ...) is the same solution as ((BEAT ALDO) ...). However, we make a difference between ((ALDO BEAT) (CARLA DAVID) ...) and ((CARLA DAVID) (ALDO BEAT) ...).
+
+You may find more about this combinatorial problem in a good book on discrete mathematics under the term "multinomial coefficients".
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+:{
+combinations :: Int -> [a] -> [([a], [a])]
+combinations 0 xs = [([], xs)]
+combinations n [] = []
+combinations n (x : xs) = ts ++ ds
+  where
+    ts = [(x : ys, zs) | (ys, zs) <- combinations (n - 1) xs] -- choose x
+    ds = [(ys, x : zs) | (ys, zs) <- combinations n xs] -- not choose x
+
+group :: [Int] -> [String] -> [[[String]]]
+group [] = const [[]]
+-- group (n : ns) = concatMap (\(ys, zs) -> map (ys :) (group ns zs)) . combinations n
+group (n : ns) = concatMap (uncurry $ (. group ns) . map . (:)) . combinations n
+:}
+length $ group [2,2,5] ["aldo","beat","carla","david","evi","flip","gary","hugo","ida"]
+#+end_src
+
+#+RESULTS:
+: 756
+
+** Problem 28
+Sorting a list of lists according to length of sublists
+
+a) We suppose that a list contains elements that are lists themselves. The objective is to sort the elements of this list according to their length. E.g. short lists first, longer lists later, or vice versa.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.List (sortOn)
+:{
+lsort :: [[a]] -> [[a]]
+-- lsort = sortBy (\a b -> compare (length a) (length b))
+-- lsort = sortBy (curry $ compare <$> (length . fst) <*> (length . snd))
+-- lsort = sortBy (comparing length)
+-- lsort = sortBy (compare `on` length)
+lsort = sortOn length -- fastest, only evaluate length on each once
+:}
+lsort ["abc","de","fgh","de","ijkl","mn","o"]
+#+end_src
+
+#+RESULTS:
+: ["o","de","de","mn","abc","fgh","ijkl"]
+
+a) Again, we suppose that a list contains elements that are lists themselves. But this time the objective is to sort the elements of this list according to their length frequency; i.e., in the default, where sorting is done ascendingly, lists with rare lengths are placed first, others with a more frequent length come later.
+#+begin_src haskell :exports both :post org-babel-haskell-formatter(*this*)
+import Data.Function (on)
+import Data.List (groupBy, sortOn)
+:{
+lsort :: [[a]] -> [[a]]
+lsort = sortOn length
+
+lfsort :: [[a]] -> [[a]]
+lfsort = concat . lsort . groupBy ((==) `on` length) . lsort
+:}
+lfsort ["abc", "de", "fgh", "de", "ijkl", "mn", "o"]
+#+end_src
+
+#+RESULTS:
+: ["o","ijkl","abc","fgh","de","de","mn"]
